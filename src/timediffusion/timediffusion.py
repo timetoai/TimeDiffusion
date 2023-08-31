@@ -117,7 +117,7 @@ class TemporalBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        input format [batch_size, channels, *other_dims]
+        `x` in format [batch_size, channels, *other_dims]
         """
         out = x
         for i in range(len(self.net)):
@@ -136,12 +136,16 @@ class TimeDiffusionProjector(nn.Module):
                   conv_filters: int = 128, base_dropout: float = 0.05):
         """
         args:
+
             `input_dims` - [channels, *dims]
                 needed for dynamical network building
                 best way to pass it as `x.shape` (without batches)
+
             `max_deg_constraint` - constraint to lessen network size, if not big enough will worsen model quality
                 number of temporal blocks in network will be (1 + max_deg_constraint) maximum
+
             `conv_filters` - number of convolutional filters for each layer
+
             `base_dropout` - dropout for first temporal block
         """
         super().__init__()
@@ -185,7 +189,7 @@ class TimeDiffusion(nn.Module):
     """
     def __init__(self, *args, **params):
         """
-        `params` - parameters for projectors
+        `args`, `params` - parameters for projectors
         """
         super().__init__()
         self.key_proj = TimeDiffusionProjector(*args, **params)
@@ -252,6 +256,7 @@ class TD(nn.Module):
         super().__init__()
         torch.random.manual_seed(seed)
         self.model = TimeDiffusion(*args, **params)
+        self.input_dims = self.model.input_dims
         self.is_fitted = False
         if verbose:
             print(f"Created model with {count_params(self):.1e} parameters")
@@ -271,6 +276,7 @@ class TD(nn.Module):
         simulates diffusion process for model training
 
         args:
+
             `example` - [sequence | image | video] in format (channels, *dims)
 
             `mask` - None for full model fitting on `example`
@@ -329,8 +335,8 @@ class TD(nn.Module):
         if mask is not None and mask.shape != example.shape:
             raise ValueError(f"Mask should None or the same shape as example, got {example.shape = } and {mask.shape = }")
 
-        scaler = DimUniversalStandardScaler()
-        train_tensor = torch.tensor(scaler.fit_transform(example), dtype=self.dtype(), device=self.device()).unsqueeze(0)
+        self.scaler = DimUniversalStandardScaler()
+        train_tensor = torch.tensor(self.scaler.fit_transform(example), dtype=self.dtype(), device=self.device()).unsqueeze(0)
         X = train_tensor.repeat(batch_size, *[1] * (len(train_tensor.shape) - 1))
 
         if mask is not None:
@@ -347,7 +353,7 @@ class TD(nn.Module):
             # noise_level = torch.rand(X.shape).to(device=self.device(), dtype=self.dtype())
             # noise *= noise_level
             # scaling random noise with noise level gives additional training diversity and stability in some cases
-            # needs further research in this area
+            # TODO: further research in this area
 
             for step in range(steps_per_epoch):
                 optim.zero_grad()
@@ -363,12 +369,109 @@ class TD(nn.Module):
                 losses.append(loss.item())
 
         self.training_steps_per_epoch = steps_per_epoch
+        self.training_example = example
         self.is_fitted = True
 
         return losses
     
-    def restore(self):
-        pass
+    def restore(self, example: Union[None, np.array, torch.Tensor] = None, shape: Union[None, list[int], tuple[int]] = None,
+                    mask: Union[None, np.array, torch.Tensor] = None, steps: Union[None, int] = None,
+                    seed: int = 42, verbose: bool = False) -> torch.Tensor:
+        """
+        recreates data using fitted model
 
-    def forecast(self):
-        pass
+        either `example` or `shape` should be provided
+
+        3 possible workflows
+
+            1 case of `shape`: model starts with random noise
+
+            2 case of `example`: ignores `shape` and model starts with `example`
+
+            3 case of `example` and `mask`: same as 2 case, but masked values persistent through diffusion process
+
+        args:
+
+            `example` - None or in format [channels, *dims], channels should be the same as in training example
+
+            `shape` - None or in format [channels, *dims], channels should be the same as in training example
+
+            `mask` - None or in format of `example`, zeros in positions, that needed to be persistent
+
+            `steps` - steps for diffusion process, if None uses same value as in fit method
+
+            `seed` - random seed, only necessary in case of providing only `shape`
+
+            `verbose` - whether to output progress of diffusion process or not
+
+        returns:
+            result of diffusion process (torch.Tensor)
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Model isn't fitted")
+
+        if example is None:
+            if shape is None:
+                raise ValueEror("Either `example` or `shape` should be passed")
+
+            torch.random.manual_seed(seed)
+            X = torch.rand(*dims).to(device=self.device(), dtype=self.dtype())
+        else:
+            if len(self.input_dims) != len(example.shape):
+                raise ValueError(f"Model fitted with {len(self.input_dims)} dims, but got {len(example.shape)}")
+
+            if self.input_dims[0] != example.shape[0]:
+                raise ValueError(f"Model fitted with {self.input_dims[0]} channels, but got {example.shape[0]}")
+
+            X = torch.tensor(example, device=self.device(), dtype=self.dtype())
+
+            if mask is not None:
+                if mask.shape != example.shape:
+                    raise ValueError(f"Mask should be same shape as example, got {example.shape = } {mask.shape = }")
+                
+                mask = ~ torch.tensor(mask, device=self.device(), dtype=torch.bool)
+
+        steps = self.training_steps_per_epoch if steps is None else steps
+        for step in (tqdm(range(steps)) if verbose else range(steps)):
+            with torch.no_grad():
+                preds = self.model(X)
+                if mask is None:
+                    X -= preds
+                else:
+                    X[mask] -= preds[mask]
+
+        return X
+
+    def forecast(self, horizon: Union[int, tuple[int], list[int]], steps: Union[None, int] = None,
+                    seed: int = 42, verbose: bool = False) -> torch.Tensor:
+        """
+        convinient version of `restore` to only get prediction for forecasting `horizon`
+        uses trained sequence as masked (persistent) reference to forecast next values
+
+        WORKS ONLY FOR 1D DATA
+
+        args:
+
+            `horizon` - forecasting horizon (e.g. number of values to forecast)
+
+            `steps` - steps for diffusion process, if None uses same value as in fit method
+
+            `seed` - random seed for reproducability
+
+            `verbose` - whether to output progress of diffusion process or not
+
+        returns:
+            forecasted values (torch.Tensor in shape [channels, horizon])
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Model isn't fitted")
+        if len(self.input_dims) != 2:
+            raise NotImplementedError("forecast method works only for 1D data")
+        
+        np.random.seed(seed)
+        example = np.append(self.training_example, np.zeros((self.input_dims[0], horizon)), axis=1)
+        mask = np.zeros_like(example)
+        mask[:, - horizon:] = 1
+
+        res = self.restore(example=example, mask=mask, steps=steps, seed=seed, verbose=verbose)
+        return res[:, - horizon:]
