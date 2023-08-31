@@ -1,4 +1,6 @@
-from .timediffusion import TD, TimeDiffusionProjector, TimeDiffusion, count_params, DimUniversalStandardScaler
+from .utils import count_params, DimUniversalStandardScaler
+from .models import TimeDiffusionProjector, TimeDiffusion
+from .frameworks import TD
 
 __all__ = [
     # useful functions
