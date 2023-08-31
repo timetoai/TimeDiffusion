@@ -117,7 +117,8 @@ class TD(nn.Module):
             raise ValueError(f"Mask should None or the same shape as example, got {example.shape = } and {mask.shape = }")
 
         self.scaler = DimUniversalStandardScaler()
-        train_tensor = torch.tensor(self.scaler.fit_transform(example), dtype=self.dtype(), device=self.device()).unsqueeze(0)
+        train_tensor = torch.tensor(example, dtype=self.dtype(), device=self.device()).unsqueeze(0)
+        train_tensor = self.scaler.fit_transform(train_tensor)
         X = train_tensor.repeat(batch_size, *[1] * (len(train_tensor.shape) - 1))
 
         if mask is not None:
@@ -205,6 +206,7 @@ class TD(nn.Module):
                 raise ValueError(f"Model fitted with {self.input_dims[0]} channels, but got {example.shape[0]}")
 
             X = torch.tensor(example, device=self.device(), dtype=self.dtype())
+            X = self.scaler.transform(X)
 
             if mask is not None:
                 if mask.shape != example.shape:
@@ -213,13 +215,15 @@ class TD(nn.Module):
                 mask = ~ torch.tensor(mask, device=self.device(), dtype=torch.bool)
 
         steps = self.training_steps_per_epoch if steps is None else steps
-        for step in (tqdm(range(steps)) if verbose else range(steps)):
-            with torch.no_grad():
+        with torch.no_grad():
+            for step in (tqdm(range(steps)) if verbose else range(steps)):
                 preds = self.model(X)
                 if mask is None:
                     X -= preds
                 else:
                     X[mask] -= preds[mask]
+
+            X = self.scaler.inverse_transform(X)
 
         return X
 
