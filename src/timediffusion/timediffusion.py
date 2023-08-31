@@ -69,11 +69,11 @@ class Chomp(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.dims == 1:
-            return x[:, :, : - self.chomp_size].contiguous()
+            return x[..., : - self.chomp_size].contiguous()
         if self.dims == 2:
-            return x[:, :, : - self.chomp_size, : - self.chomp_size].contiguous()
+            return x[..., : - self.chomp_size, : - self.chomp_size].contiguous()
         if self.dims == 3:
-            return x[:, :, : - self.chomp_size, : - self.chomp_size,  : - self.chomp_size].contiguous()
+            return x[..., : - self.chomp_size, : - self.chomp_size,  : - self.chomp_size].contiguous()
 
 class TemporalBlock(nn.Module):
     """
@@ -183,23 +183,46 @@ class TimeDiffusion(nn.Module):
     """
     main model, uses projectors to create (q, k, v) for vanilla attention layer
     """
-    def __init__(self, **params):
+    def __init__(self, *args, **params):
         """
         `params` - parameters for projectors
         """
         super().__init__()
-        self.key_proj = TimeDiffusionProjector(**params)
-        self.val_proj = TimeDiffusionProjector(**params)
-        self.query_proj = TimeDiffusionProjector(**params)
+        self.key_proj = TimeDiffusionProjector(*args, **params)
+        self.val_proj = TimeDiffusionProjector(*args, **params)
+        self.query_proj = TimeDiffusionProjector(*args, **params)
+
+        self.input_dims = self.key_proj.input_dims
+        self.dims = self.key_proj.dims
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # projections
         key = self.key_proj(x)
         val = self.val_proj(x)
         query = self.query_proj(x)
 
-        scores = torch.bmm(query, key.transpose(1, 2))
+        is_batched = self.dims + 2 == len(key.size())
+        mat_mul = torch.bmm if is_batched else torch.matmul
+
+        # flattening last dimensionalities in case of 2D and 3D input
+        # TODO: think of better solution
+        if self.dims > 1:
+            orig_shape = key.shape
+            new_shape = list(key.size()[: - self.dims]) + [np.prod(key.size()[ - self.dims:])]
+
+            key = key.view(new_shape)
+            val = val.view(new_shape)
+            query = query.view(new_shape)
+
+        # vanilla attenion
+        scores = mat_mul(query, key.transpose(- 2, - 1))
         weights = torch.nn.functional.softmax(scores, dim=1)
-        attention = torch.bmm(weights, val)
+        attention = mat_mul(weights, val)
+
+        # back to original shape in case of 2D and 3D input
+        if self.dims > 1:
+            attention = attention.view(orig_shape)
+
         return attention
     
 
@@ -207,7 +230,7 @@ class TD(nn.Module):
     """
     Class provides a convenient framework for effectively working with TimeDiffusion, encompassing all essential functions.
     """
-    def __init__(self, verbose: bool = False, seed=42, **params):
+    def __init__(self, verbose: bool = False, seed=42, *args, **params):
         """
         args (mostly same as TimeDiffusionProjector):
 
@@ -228,7 +251,7 @@ class TD(nn.Module):
         """
         super().__init__()
         torch.random.manual_seed(seed)
-        self.model = TimeDiffusion(**params)
+        self.model = TimeDiffusion(*args, **params)
         self.is_fitted = False
         if verbose:
             print(f"Created model with {count_params(self):.1e} parameters")
@@ -292,7 +315,7 @@ class TD(nn.Module):
         if isinstance(distance_loss, str):
             if distance_loss not in ("MAE", "MSE"): 
                 raise NotImplementedError(f"Distance loss {distance_loss} doesn't exist")
-            distance_loss = {"MAE": _mae, "MSE": _mse}
+            distance_loss = {"MAE": _mae, "MSE": _mse}[distance_loss]
         elif not isinstance(distance_loss, nn.Module):
             raise NotImplementedError(f"Distance loss should be 'MAE', 'MSE' or nn.Module, got {type(distance_loss)}")
 
