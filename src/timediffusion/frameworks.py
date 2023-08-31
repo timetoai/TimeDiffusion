@@ -212,7 +212,7 @@ class TD(nn.Module):
                 if mask.shape != example.shape:
                     raise ValueError(f"Mask should be same shape as example, got {example.shape = } {mask.shape = }")
                 
-                mask = ~ torch.tensor(mask, device=self.device(), dtype=torch.bool)
+                mask = torch.tensor(mask, device=self.device(), dtype=torch.bool)
 
         steps = self.training_steps_per_epoch if steps is None else steps
         with torch.no_grad():

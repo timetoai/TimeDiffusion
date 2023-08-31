@@ -106,6 +106,9 @@ class TestTD:
         except Exception as e:
             pytest.fail(f"TD restore with {dims = } failed with exception: {e}")
 
+        if mask is not None:
+            assert np.allclose(res.numpy()[mask], data[mask])
+
     def test_forecast(self, dims, mask_dropout):
         if len(dims) > 2:
             return
