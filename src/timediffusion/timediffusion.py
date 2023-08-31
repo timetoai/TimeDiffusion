@@ -1,3 +1,5 @@
+from typing import Union
+
 from tqdm import tqdm
 
 import numpy as np
@@ -79,8 +81,8 @@ class TemporalBlock(nn.Module):
     adds additional convolutional layer if needed to downsample number of channels
     inspired by https://github.com/locuslab/TCN
     """
-    def __init__(self, n_inputs: int, n_outputs: int, kernel_size: int | tuple[int],
-                  stride: int | tuple[int], dilation: int | tuple[int], padding: int | tuple[int],
+    def __init__(self, n_inputs: int, n_outputs: int, kernel_size: Union[int, tuple[int]],
+                  stride: Union[int, tuple[int]], dilation: Union[int, tuple[int]], padding: Union[int, tuple[int]],
                   dropout: int = 0.2, dims: int = 1, layers: int = 2):
         super().__init__()
 
@@ -130,7 +132,8 @@ class TimeDiffusionProjector(nn.Module):
     convolutional network, used as projector in TD
     consists of temporal blocks with exponentially increasing padding/dilation parameters
     """
-    def __init__(self, input_dims: list | tuple, max_deg_constraint: int = 13, conv_filters: int = 128, base_dropout: float = 0.05):
+    def __init__(self, input_dims: Union[list[int], tuple[int]], max_deg_constraint: int = 13,
+                  conv_filters: int = 128, base_dropout: float = 0.05):
         """
         args:
             `input_dims` - [channels, *dims]
@@ -236,10 +239,10 @@ class TD(nn.Module):
     def device(self):
         return  next(self.model.parameters()).device
 
-    def fit(self, example: np.array | torch.Tensor, mask: None | np.array | torch.Tensor = None,
+    def fit(self, example: Union[np.array, torch.Tensor], mask: Union[None, np.array, torch.Tensor] = None,
             epochs: int = 20, batch_size: int = 2, steps_per_epoch: int = 32,
-            lr: float = 4e-4, distance_loss: str | nn.Module = "MAE",
-            distribution_loss: str | nn.Module = "kl_div", distrib_loss_coef = 1e-2,
+            lr: float = 4e-4, distance_loss: Union[str, nn.Module] = "MAE",
+            distribution_loss: Union[str, nn.Module] = "kl_div", distrib_loss_coef = 1e-2,
             verbose: bool = False, seed=42) -> list[float]:
         """
         simulates diffusion process for model training
