@@ -258,3 +258,85 @@ class TD(nn.Module):
 
         res = self.restore(example=example, mask=mask, steps=steps, seed=seed, verbose=verbose)
         return res[:, - horizon:]
+
+    @torch.no_grad()
+    def synth(self, start=None, proximity: float = 0.9, samples: int = 8, batch_size: int = 8, 
+            step_granulation : int = 10,
+            seed: int = 42, verbose: bool = False) -> torch.Tensor:
+        """
+        generates synthetic data according to the proximity to the original example
+            could start with random noise and denoise it to certain degree
+            or start with provided samples and work with them
+
+        args:
+
+            `start` - diffusion process starts with 
+                random noise in case None
+                with provided samples [samples, channesl, *dims] in other cases
+
+            `proximity` - similarity of syntetic samples to the fitted example
+                should be in [0.0, 1.0] where 0.0 - random noise, 1.0 - full restored
+
+            `samples` - number of synthetic samples to generate
+
+            `batch_size` - number of sequences to generate at one diffusion process
+                sets tradeoff between speed and memory of generation
+
+            `step_granulation` - number of substeps to split usual step
+                significantly increases computation time 
+                    in tradeoff of better closeness of synthetic samples to selected proximity
+
+            `seed` - random seed for reproducability
+
+            `verbose` - whether to output progress or not
+
+        returns:
+            torch.Tensor of shape [samples, channels, *dims]
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Model isn't fitted")
+        if not 0. <= proximity <= 1.:
+            raise ValueError(f"proximity should be in [0, 1], got {proximity = }")
+        dist = _kl_div
+        gran_coef = 1 / step_granulation
+        torch.random.manual_seed(seed)
+        
+        # proximity estimation of fitted model
+        # TODO: think of better proximity mechanism
+        if start is None:
+            x = torch.rand(*self.input_dims, device=self.device(), dtype=self.dtype())
+        else:
+            x = torch.tensor(start[0], device=self.device(), dtype=self.dtype())
+        ref = self.training_example.numpy() if type(self.training_example) is torch.Tensor else self.training_example
+        scores = [dist(x.cpu().numpy(), ref).mean()]
+        if verbose:
+            print("Estimating fitted proximity...")
+
+        _range = range(self.training_steps_per_epoch * step_granulation)
+        for _ in (tqdm(_range) if verbose else _range):
+            preds = self.model(x) * gran_coef
+            x -= preds
+            scores.append(dist(x.cpu().numpy(), ref).mean())
+        
+        scores = 1 - np.array(scores)
+        scores = (scores - scores.min()) / (scores.max() - scores.min())
+        best_step = np.argmin(np.abs(scores - proximity))
+        if verbose:
+            print(f"Best granulated step is {best_step}")
+
+        # generation
+        res = []
+        if verbose:
+            print("Generating...")
+        _range = range(0, samples, batch_size)
+        for i in (tqdm(_range) if verbose else _range):
+            if start is None:
+                x = torch.rand(min(batch_size, samples - i),
+                    *self.input_dims, device=self.device(), dtype=self.dtype())
+            else:
+                x = torch.tensor(start[i: i + batch_size], device=self.device(), dtype=self.dtype())
+            for _ in range(best_step - 1):
+                x -= self.model(x) * gran_coef
+            res.append(x)
+
+        return torch.concat(res, dim=0)

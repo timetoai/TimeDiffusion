@@ -24,7 +24,7 @@ class TestTD:
         try:
             model.fit(data, mask=mask, epochs=1, batch_size=1, steps_per_epoch=2)
         except Exception as e:
-            pytest.fail(f"TD fit with {dims = } failed with exception: {e}")
+            pytest.fail(f"TD.fit with {dims = } failed with exception: {e}")
 
     def test_restore(self, dims, mask_dropout):
         model = TD(input_dims=dims)
@@ -40,7 +40,7 @@ class TestTD:
             model.fit(example=data, mask=mask, epochs=1, batch_size=1, steps_per_epoch=2)
             res = model.restore(data, mask=mask, steps=2)
         except Exception as e:
-            pytest.fail(f"TD restore with {dims = } failed with exception: {e}")
+            pytest.fail(f"TD.restore with {dims = } failed with exception: {e}")
 
         if mask is not None:
             assert np.allclose(res.numpy()[mask], data[mask])
@@ -63,8 +63,30 @@ class TestTD:
             model.fit(example=data, mask=mask, epochs=1, batch_size=1, steps_per_epoch=2)
             res = model.forecast(horizon, steps=2)
         except Exception as e:
-            pytest.fail(f"TD restore with {dims = } failed with exception: {e}")
+            pytest.fail(f"TD.forecast with {dims = } failed with exception: {e}")
 
         assert len(res.shape) == 2
         assert res.shape[0] == dims[0]
         assert res.shape[1] == horizon
+
+    def test_synth(self, dims, mask_dropout):
+        # using mask_dropout as a marker to start from noise or not
+        start = mask_dropout
+
+        model = TD(input_dims=dims)
+
+        data = np.ones(dims)
+        if start is not None:
+            start = np.repeat(np.expand_dims(data, 0), 2, axis=0)
+        samples = 2
+        try:
+            model.fit(example=data, epochs=1, batch_size=1, steps_per_epoch=2)
+            if start is None:
+                res = model.synth(proximity=0.7, step_granulation=2, samples=samples, batch_size=1)
+            else:
+                res = model.synth(start=start, proximity=0.7, step_granulation=2, samples=samples, batch_size=1)
+        except Exception as e:
+            pytest.fail(f"TD.synth with {dims = } and {start is None } failed with exception: {e}")
+        
+        assert len(res) == samples
+        assert list(res[0].shape) == dims
