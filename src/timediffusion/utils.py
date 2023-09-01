@@ -46,10 +46,15 @@ def kl_div(x: Union[np.array, torch.Tensor], y: Union[np.array, torch.Tensor],
     else:
         raise NotImplementedError(f"kl_div array type should be numpy.array or torch.tensor`, got {type(x)}")
     
+    # biased min-max to get rid off zeros
     x = (x - x.min())  / clip(x.max() - x.min())
     y = (y - y.min()) / clip(y.max() - y.min())
     x = clip(x)
     y = clip(y)
+
+    # to probs
+    x /= x.sum()
+    y /= y.sum()
 
     return (log(x / y) * x)
 
