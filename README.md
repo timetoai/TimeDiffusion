@@ -2,7 +2,7 @@
 
 Supports 2D (image) and 3D (video) data as input for research purposes.
 
-**Install**
+## Install
 
 ```
 pip install timediffusion
