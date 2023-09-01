@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 
 import torch
@@ -21,6 +23,35 @@ def get_appropriate_conv_layer(dims: int) -> nn.Module:
     if dims not in (1, 2, 3):
         raise NotImplementedError(f"Convolutional layer for dimensionalty {dims} not implemented")
     return {1: nn.Conv1d, 2: nn.Conv2d, 3: nn.Conv3d}[dims]
+
+
+def kl_div(x: Union[np.array, torch.Tensor], y: Union[np.array, torch.Tensor],
+           eps: float = 1e-6):
+    """
+    Calculates kl_div on min-max version of x, y
+    
+    args:
+        `x` - input array
+        `y` - reference array
+    """
+    if type(x) is not type(y):
+        raise ValueError(f"input arrays for kl_div should be same type, got {type(x)} and {type(y)}")
+
+    if type(x) is np.array:
+        clip = lambda arr: np.clip(arr, a_min=eps, a_max=1)
+        log = np.log
+    elif type(x) is torch.Tensor:
+        clip = lambda arr: torch.clip(arr, min=eps, max=1)
+        log = torch.log
+    else:
+        raise NotImplementedError(f"kl_div array type should be numpy.array or torch.tensor`, got {type(x)}")
+    
+    x = (x - x.min())  / clip(x.max() - x.min())
+    y = (y - y.min()) / clip(y.max() - y.min())
+    x = clip(x)
+    y = clip(y)
+
+    return (log(x / y) * x)
 
 
 class DimUniversalStandardScaler:

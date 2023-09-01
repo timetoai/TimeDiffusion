@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from .utils import count_params, DimUniversalStandardScaler
+from .utils import count_params, DimUniversalStandardScaler, kl_div as _kl_div
 from .models import TimeDiffusion
     
 
@@ -91,10 +91,6 @@ class TD(nn.Module):
         returns:
             list of training losses (per step for each epoch)
         """
-        def _kl_div(x, y, eps=1e-3):
-            x = (x - x.min())  / torch.clip(x.max() - x.min(), min=eps) + 1e-12
-            y = (y - y.min()) / torch.clip(y.max() - y.min(), min=eps) + 1e-12
-            return (torch.log(x / torch.clip(y, min=eps)) * x)
         
         _mae = lambda x, y: (x - y).abs()
         _mse = lambda x, y: ((x - y) ** 2)
@@ -152,10 +148,13 @@ class TD(nn.Module):
 
         self.training_steps_per_epoch = steps_per_epoch
         self.training_example = example
+        self.distance_loss = distance_loss
+        self.distribution_loss = distribution_loss
         self.is_fitted = True
 
         return losses
     
+    @torch.no_grad()
     def restore(self, example: Union[None, np.array, torch.Tensor] = None, shape: Union[None, list[int], tuple[int]] = None,
                     mask: Union[None, np.array, torch.Tensor] = None, steps: Union[None, int] = None,
                     seed: int = 42, verbose: bool = False) -> torch.Tensor:
@@ -215,13 +214,12 @@ class TD(nn.Module):
                 mask = torch.tensor(mask, device=self.device(), dtype=torch.bool)
 
         steps = self.training_steps_per_epoch if steps is None else steps
-        with torch.no_grad():
-            for step in (tqdm(range(steps)) if verbose else range(steps)):
-                preds = self.model(X)
-                if mask is None:
-                    X -= preds
-                else:
-                    X[mask] -= preds[mask]
+        for step in (tqdm(range(steps)) if verbose else range(steps)):
+            preds = self.model(X)
+            if mask is None:
+                X -= preds
+            else:
+                X[mask] -= preds[mask]
 
             X = self.scaler.inverse_transform(X)
 
