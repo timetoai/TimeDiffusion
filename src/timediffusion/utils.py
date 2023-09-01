@@ -37,7 +37,7 @@ def kl_div(x: Union[np.array, torch.Tensor], y: Union[np.array, torch.Tensor],
     if type(x) is not type(y):
         raise ValueError(f"input arrays for kl_div should be same type, got {type(x)} and {type(y)}")
 
-    if type(x) is np.array:
+    if type(x) is np.ndarray:
         clip = lambda arr: np.clip(arr, a_min=eps, a_max=1)
         log = np.log
     elif type(x) is torch.Tensor:
