@@ -1,4 +1,4 @@
-# TimeDiffusion - Unified time series framework for multiple tasks
+# TimeDiffusion - Unified Framework for Multiple Time Series Tasks
 
 Supports 2D (image) and 3D (video) data as input for research purposes.
 
@@ -9,9 +9,9 @@ pip install timediffusion
 ```
 
 
-**Quick Start**
+## Quick Start
 
-Forecasting time seires
+**Forecasting time seires**
 
 ```
 # train sequence in shape [channels, sequence_length]
@@ -20,7 +20,7 @@ training_losses = model.fit(train)
 predictions = model.forecast(horizon)
 ```
 
-Creating synthetic time series
+**Creating synthetic time series**
 
 ```
 # sequence in shape [channels, sequence_length]
@@ -30,7 +30,7 @@ training_losses = model.fit(seq)
 synthetic_data = model.synth(proximity=0.9, samples=3, batch_size=2, step_granulation=100)
 ```
 
-Time series Imputation
+**Time series Imputation**
 
 ```
 # sequence in shape [channels, sequence_length]
@@ -40,16 +40,16 @@ training_losses = model.fit(seq, mask=mask)
 restored_seq = model.restore(example=seq, mask=mask)
 ```
 
-**Examples**
+## Examples
 
 [Time series tasks example](./examples/example_1d_data.ipynb)
 
-**Philosophy**
+## Philosophy
 
 Main synopsis behind TimeDiffusion model is that in reality, when working with time series we don’t have many samples, as it could be in other machine learning fields (e.g. cv, nlp). Thus, classical autoregressive approaches like ARIMA has the most suitable approach of fitting / training only on original sequence (maybe with some exogenous data).
 
 TimeDiffusion takes inspiration from these established methods and only trains on the input sample. Model incorporates most powerful modern deep learning techniques such as diffusion process, exponential dilated convolutions, residual connections and attention mechanism
 
-**Model architecture**
+## Model architecture
 
 TODO
