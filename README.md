@@ -11,7 +11,7 @@ pip install timediffusion
 
 ## Quick Start
 
-**Forecasting time seires**
+**Forecasting time series**
 
 ```python
 # train sequence in shape [channels, sequence_length]
