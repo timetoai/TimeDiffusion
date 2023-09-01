@@ -4,7 +4,7 @@ Supports 2D (image) and 3D (video) data as input for research purposes.
 
 ## Install
 
-```
+```bash
 pip install timediffusion
 ```
 
@@ -13,7 +13,7 @@ pip install timediffusion
 
 **Forecasting time seires**
 
-```
+```python
 # train sequence in shape [channels, sequence_length]
 model = TD(input_dims=train.shape).to(device=device)
 training_losses = model.fit(train)
@@ -22,7 +22,7 @@ predictions = model.forecast(horizon)
 
 **Creating synthetic time series**
 
-```
+```python
 # sequence in shape [channels, sequence_length]
 model = TD(input_dims=seq.shape).to(device=device)
 training_losses = model.fit(seq)
@@ -32,7 +32,7 @@ synthetic_data = model.synth(proximity=0.9, samples=3, batch_size=2, step_granul
 
 **Time series Imputation**
 
-```
+```python
 # sequence in shape [channels, sequence_length]
 model = TD(input_dims=seq.shape).to(device=device)
 # mask - binary array of same shape, as sequence, with 1 in positions, that needed to be overlooked
