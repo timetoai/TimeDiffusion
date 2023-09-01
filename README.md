@@ -1,6 +1,6 @@
 # TimeDiffusion - Unified time series framework for multiple tasks
 
-Supports 2D (image) and 3D (video) data, but is currently not suitable for working with them.
+Supports 2D (image) and 3D (video) data as input for research purposes.
 
 **Install**
 
@@ -47,7 +47,9 @@ restored_seq = model.restore(example=seq, mask=mask)
 
 **Philosophy**
 
-TODO
+Main synopsis behind TimeDiffusion model is that in reality, when working with time series we don’t have many samples, as it could be in other machine learning fields (e.g. cv, nlp). Thus, classical autoregressive approaches like ARIMA has the most suitable approach of fitting / training only on original sequence (maybe with some exogenous data).
+
+TimeDiffusion takes inspiration from these established methods and only trains on the input sample. Model incorporates most powerful modern deep learning techniques such as diffusion process, exponential dilated convolutions, residual connections and attention mechanism
 
 **Model architecture**
 
