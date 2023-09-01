@@ -45,7 +45,7 @@ restored_seq = model.restore(example=seq, mask=mask)
 
 [Time series tasks example](./examples/example_1d_data.ipynb)
 
-**Philosophy****
+**Philosophy**
 
 TODO
 
