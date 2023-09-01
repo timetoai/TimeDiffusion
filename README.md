@@ -5,7 +5,8 @@ Supports 2D (image) and 3D (video) data, but is currently not suitable for worki
 **Install**
 
 ```
-pip install timediffusion
+https://github.com/timetoai/TimeDiffusion.git
+pip install .
 ```
 
 
