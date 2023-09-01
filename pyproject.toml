@@ -8,7 +8,7 @@ version = "0.1.1"
 authors = [
   { name="Shishkov Vladislav", email="shishkovve@mail.com" },
 ]
-description = "TimeDiffusion - unified framework for multiple time series tasks"
+description = "TimeDiffusion - Unified Framework for Multiple Time Series Tasks"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
