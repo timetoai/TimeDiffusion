@@ -42,6 +42,7 @@ class TestTD:
         except Exception as e:
             pytest.fail(f"TD.restore with {dims = } failed with exception: {e}")
 
+        assert (~ torch.isnan(res)).all()
         if mask is not None:
             assert np.allclose(res.numpy()[mask], data[mask])
 
@@ -68,6 +69,7 @@ class TestTD:
         assert len(res.shape) == 2
         assert res.shape[0] == dims[0]
         assert res.shape[1] == horizon
+        assert (~ torch.isnan(res)).all()
 
     def test_synth(self, dims, mask_dropout):
         # using mask_dropout as a marker to start from noise or not
@@ -90,3 +92,4 @@ class TestTD:
         
         assert len(res) == samples
         assert list(res[0].shape) == dims
+        assert (~ torch.isnan(res)).all()

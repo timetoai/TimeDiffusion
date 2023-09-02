@@ -20,7 +20,9 @@ class TestTimeDiffusion:
             res = model(data)
         except Exception as e:
             pytest.fail(f"Unbatched forward pass of {type(model).__name__} with {dims = } failed with exception: {e}")
+
         assert data.shape == res.shape
+        assert (~ torch.isnan(res)).all()
         
         # batched forward pass
         data = torch.ones(1, *dims)
@@ -28,7 +30,9 @@ class TestTimeDiffusion:
             res = model(data)
         except Exception as e:
             pytest.fail(f"Batched forward pass of {type(model).__name__} with {dims = } failed with exception: {e}")
+
         assert data.shape == res.shape
+        assert (~ torch.isnan(res)).all()
 
     def test_backward_pass(self, model_init, dims):
         model = model_init(input_dims=dims)
@@ -37,14 +41,20 @@ class TestTimeDiffusion:
         data = torch.ones(*dims)
         try:
             res = model(data)
-            loss = (res - 1).mean().backward()
+            loss = (res - 1).mean()
+            loss.backward()
         except Exception as e:
             pytest.fail(f"Unbatched backward pass of {type(model).__name__} with {dims = } failed with exception: {e}")
+
+        assert (~ torch.isnan(loss)).all()
         
         # batched backward pass
         data = torch.ones(1, *dims)
         try:
             res = model(data)
-            loss = (res - 1).mean().backward()
+            loss = (res - 1).mean()
+            loss.backward()
         except Exception as e:
             pytest.fail(f"Batched backward pass of {type(model).__name__} with {dims = } failed with exception: {e}")
+
+        assert (~ torch.isnan(loss)).all()
