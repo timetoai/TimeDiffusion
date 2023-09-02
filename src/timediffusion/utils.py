@@ -81,4 +81,4 @@ class DimUniversalStandardScaler:
         return self.transform(data)
 
     def inverse_transform(self, data):
-        return data * self.std + self.mu
+        return data * (self.std + self.eps) + self.mu

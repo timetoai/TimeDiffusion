@@ -5,8 +5,24 @@ import numpy as np
 import torch
 from torch import nn
 
-from timediffusion import count_params, kl_div
+from timediffusion import count_params, kl_div, DimUniversalStandardScaler
 
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        np.sin(np.arange(10)) * 10,
+        torch.arange(10).float(),
+    ]
+)
+def test_duscaler(arr):
+    scaler = DimUniversalStandardScaler()
+    tarr = scaler.fit_transform(arr)
+    tarr1 = scaler.transform(arr)
+    rarr = scaler.inverse_transform(tarr)
+    assert abs((tarr - tarr1).mean()) < scaler.eps
+    assert abs((rarr - arr).mean()) < scaler.eps
 
 @pytest.mark.parametrize(
     "x,y",
