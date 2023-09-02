@@ -48,7 +48,7 @@ class TD(nn.Module):
     def device(self):
         return  next(self.model.parameters()).device
 
-    def fit(self, example: Union[np.array, torch.Tensor], mask: Union[None, np.array, torch.Tensor] = None,
+    def fit(self, example: Union[np.ndarray, torch.Tensor], mask: Union[None, np.ndarray, torch.Tensor] = None,
             epochs: int = 20, batch_size: int = 2, steps_per_epoch: int = 32,
             lr: float = 4e-4, distance_loss: Union[str, nn.Module] = "MAE",
             distribution_loss: Union[str, nn.Module] = "kl_div", distrib_loss_coef = 1e-2,
@@ -157,8 +157,8 @@ class TD(nn.Module):
         return losses
     
     @torch.no_grad()
-    def restore(self, example: Union[None, np.array, torch.Tensor] = None, shape: Union[None, list[int], tuple[int]] = None,
-                    mask: Union[None, np.array, torch.Tensor] = None, steps: Union[None, int] = None,
+    def restore(self, example: Union[None, np.ndarray, torch.Tensor] = None, shape: Union[None, list[int], tuple[int]] = None,
+                    mask: Union[None, np.ndarray, torch.Tensor] = None, steps: Union[None, int] = None,
                     seed: int = 42, verbose: bool = False) -> torch.Tensor:
         """
         recreates data using fitted model

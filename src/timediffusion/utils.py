@@ -25,7 +25,7 @@ def get_appropriate_conv_layer(dims: int) -> nn.Module:
     return {1: nn.Conv1d, 2: nn.Conv2d, 3: nn.Conv3d}[dims]
 
 
-def kl_div(x: Union[np.array, torch.Tensor], y: Union[np.array, torch.Tensor],
+def kl_div(x: Union[np.ndarray, torch.Tensor], y: Union[np.ndarray, torch.Tensor],
            eps: float = 1e-6):
     """
     Calculates kl_div on min-max version of x, y
