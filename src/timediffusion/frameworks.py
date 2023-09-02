@@ -135,7 +135,7 @@ class TD(nn.Module):
             self.model.train()
 
             if mask is not None and mask_fill == "noise":
-                X[~ mask_tensor] = torch.rand((~ mask_tensor).sum())
+                X[~ mask_tensor] = torch.rand((~ mask_tensor).sum(), device=self.device(), dtype=self.dtype())
 
             noise = torch.rand(*X.shape, device=self.device(), dtype=self.dtype())
             # noise_level = torch.rand(X.shape).to(device=self.device(), dtype=self.dtype())
