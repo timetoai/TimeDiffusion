@@ -91,17 +91,17 @@ class TD(nn.Module):
         returns:
             list of training losses (per step for each epoch)
         """
-        
-        _mae = lambda x, y: (x - y).abs()
-        _mse = lambda x, y: ((x - y) ** 2)
-
+        # distance loss definition
         if isinstance(distance_loss, str):
             if distance_loss not in ("MAE", "MSE"): 
                 raise NotImplementedError(f"Distance loss {distance_loss} doesn't exist")
+            _mae = lambda x, y: (x - y).abs()
+            _mse = lambda x, y: ((x - y) ** 2)
             distance_loss = {"MAE": _mae, "MSE": _mse}[distance_loss]
         elif not isinstance(distance_loss, nn.Module):
             raise NotImplementedError(f"Distance loss should be 'MAE', 'MSE' or nn.Module, got {type(distance_loss)}")
 
+        # distribution loss definition
         if isinstance(distribution_loss, str):
             if distribution_loss != "kl_div":
                 raise NotImplementedError(f"Distribution loss {distribution_loss} doesn't exist")
@@ -109,9 +109,11 @@ class TD(nn.Module):
         elif not isinstance(distribution_loss, nn.Module):
             raise NotImplementedError(f"Distribution loss should be 'kl_div' or nn.Module got {type(distribution_loss)}")
         
+        # mask check
         if mask is not None and mask.shape != example.shape:
             raise ValueError(f"Mask should None or the same shape as example, got {example.shape = } and {mask.shape = }")
 
+        # scaling
         self.scaler = DimUniversalStandardScaler()
         train_tensor = torch.tensor(example, dtype=self.dtype(), device=self.device()).unsqueeze(0)
         train_tensor = self.scaler.fit_transform(train_tensor)
@@ -339,4 +341,7 @@ class TD(nn.Module):
                 x -= self.model(x) * gran_coef
             res.append(x)
 
-        return torch.concat(res, dim=0)
+        res = torch.concat(res, dim=0)
+        res = self.scaler.inverse_transform(res)
+
+        return res
