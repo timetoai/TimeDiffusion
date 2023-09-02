@@ -125,6 +125,7 @@ class TD(nn.Module):
 
         if mask is not None:
             mask_tensor = ~ torch.tensor(mask, dtype=torch.bool, device=self.device()).unsqueeze(0)
+            mask_tensor = mask_tensor.repeat(batch_size, *[1] * (len(mask_tensor.shape) - 1))
 
         optim = torch.optim.Adam(self.parameters(), lr=lr)
         losses = []
@@ -134,7 +135,7 @@ class TD(nn.Module):
             self.model.train()
 
             if mask is not None and mask_fill == "noise":
-                X[~ mask_tensor] = torch.rand(batch_size * (~ mask_tensor).sum())
+                X[~ mask_tensor] = torch.rand((~ mask_tensor).sum())
 
             noise = torch.rand(*X.shape, device=self.device(), dtype=self.dtype())
             # noise_level = torch.rand(X.shape).to(device=self.device(), dtype=self.dtype())
