@@ -236,8 +236,7 @@ class TD(nn.Module):
             else:
                 X[mask] -= preds[mask]
 
-            X = self.scaler.inverse_transform(X)
-
+        X = self.scaler.inverse_transform(X)
         return X
 
     def forecast(self, horizon: Union[int, tuple[int], list[int]], steps: Union[None, int] = None,
