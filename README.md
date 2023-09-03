@@ -17,6 +17,7 @@ pip install timediffusion
 # train sequence in shape [channels, sequence_length]
 model = TD(input_dims=train.shape).to(device=device)
 training_losses = model.fit(train)
+# horizon : int - how many future values to forecast
 predictions = model.forecast(horizon)
 ```
 
@@ -27,7 +28,7 @@ predictions = model.forecast(horizon)
 model = TD(input_dims=seq.shape).to(device=device)
 training_losses = model.fit(seq)
 # proximity - how close to original, samples - total synthetic time series
-synthetic_data = model.synth(proximity=0.9, samples=3, batch_size=2, step_granulation=100)
+synthetic_data = model.synth(proximity=0.9, samples=3, batch_size=2, step_granulation=10)
 ```
 
 **Time series Imputation**
@@ -35,7 +36,7 @@ synthetic_data = model.synth(proximity=0.9, samples=3, batch_size=2, step_granul
 ```python
 # sequence in shape [channels, sequence_length]
 model = TD(input_dims=seq.shape).to(device=device)
-# mask - binary array of same shape, as sequence, with 1 in positions, that needed to be overlooked
+# mask - binary array of same shape, as sequence, with 1 in positions, that are unknown
 training_losses = model.fit(seq, mask=mask)
 restored_seq = model.restore(example=seq, mask=mask)
 ```
