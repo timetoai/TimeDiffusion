@@ -121,6 +121,7 @@ class TD(nn.Module):
 
         if mask is not None:
             mask_tensor = ~ torch.tensor(mask, dtype=torch.bool, device=self.device()).unsqueeze(0)
+            mask_tensor = mask_tensor.repeat(batch_size, *[1] * (len(mask_tensor.shape) - 1))
 
         optim = torch.optim.Adam(self.parameters(), lr=lr)
         losses = []
@@ -140,7 +141,7 @@ class TD(nn.Module):
                 y_hat = self.model(noise)
                 # noise - y_hat -> X
                 loss = distance_loss(noise - y_hat, X) + distrib_loss_coef * distribution_loss(y_hat, noise)
-                loss = loss.mean() if mask is None else (loss * mask_tensor).mean()
+                loss = loss.mean() if mask is None else loss[mask_tensor].mean()
                 loss.backward()
                 optim.step()
 
@@ -219,6 +220,10 @@ class TD(nn.Module):
                     raise ValueError(f"Mask should be same shape as example, got {example.shape = } {mask.shape = }")
                 
                 mask = torch.tensor(mask, device=self.device(), dtype=torch.bool)
+
+            # provided example could have nan values
+            nan_mask = torch.isnan(X)
+            X[nan_mask] = torch.randn(nan_mask.sum(), device=X.device, dtype=X.dtype)
 
         steps = self.training_steps_per_epoch if steps is None else steps
         for step in (tqdm(range(steps)) if verbose else range(steps)):

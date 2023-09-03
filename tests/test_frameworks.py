@@ -35,6 +35,7 @@ class TestTD:
         else:
             np.random.seed(42)
             mask = np.random.uniform(low=0., high=1.0, size=data.shape) < mask_dropout
+            data[mask] = np.nan
 
         try:
             model.fit(example=data, mask=mask, epochs=1, batch_size=1, steps_per_epoch=2)
@@ -44,7 +45,8 @@ class TestTD:
 
         assert (~ torch.isnan(res)).all()
         if mask is not None:
-            assert np.allclose(res.numpy()[mask], data[mask])
+            # restoring with mask shouldn't change unmasked tokens
+            assert np.allclose(res.numpy()[~ mask], data[~ mask])
 
     def test_forecast(self, dims, mask_dropout):
         if len(dims) > 2:
