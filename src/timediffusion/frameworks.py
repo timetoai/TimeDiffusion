@@ -49,7 +49,7 @@ class TD(nn.Module):
         return  next(self.model.parameters()).device
 
     def fit(self, example: Union[np.ndarray, torch.Tensor], mask: Union[None, np.ndarray, torch.Tensor] = None,
-            mask_fill: str = "noise", epochs: int = 20, batch_size: int = 2, steps_per_epoch: int = 32,
+            epochs: int = 20, batch_size: int = 2, steps_per_epoch: int = 32,
             lr: float = 4e-4, distance_loss: Union[str, nn.Module] = "MAE",
             distribution_loss: Union[str, nn.Module] = "kl_div", distrib_loss_coef = 1e-2,
             verbose: bool = False, seed=42) -> list[float]:
@@ -62,8 +62,6 @@ class TD(nn.Module):
 
             `mask` - None for full model fitting on `example`
                 or same shape as `example` for not fitting in points, that masked with 1
-
-            `mask_fill` - "noise" / "original"
 
             `epochs` - number of training epochs
 
@@ -112,8 +110,6 @@ class TD(nn.Module):
             raise NotImplementedError(f"Distribution loss should be 'kl_div' or nn.Module got {type(distribution_loss)}")
         
         # mask check
-        if mask is not None and mask_fill not in ("noise", "original"):
-            raise ValueError(f"mask_fill should be 'noise' or 'original', got {mask_fill}")
         if mask is not None and mask.shape != example.shape:
             raise ValueError(f"Mask should None or the same shape as example, got {example.shape = } and {mask.shape = }")
 
@@ -125,7 +121,6 @@ class TD(nn.Module):
 
         if mask is not None:
             mask_tensor = ~ torch.tensor(mask, dtype=torch.bool, device=self.device()).unsqueeze(0)
-            mask_tensor = mask_tensor.repeat(batch_size, *[1] * (len(mask_tensor.shape) - 1))
 
         optim = torch.optim.Adam(self.parameters(), lr=lr)
         losses = []
@@ -133,9 +128,6 @@ class TD(nn.Module):
         torch.random.manual_seed(seed)
         for epoch in (tqdm(range(1, epochs + 1)) if verbose else range(1, epochs + 1)):
             self.model.train()
-
-            if mask is not None and mask_fill == "noise":
-                X[~ mask_tensor] = torch.rand((~ mask_tensor).sum(), device=self.device(), dtype=self.dtype())
 
             noise = torch.rand(*X.shape, device=self.device(), dtype=self.dtype())
             # noise_level = torch.rand(X.shape).to(device=self.device(), dtype=self.dtype())
