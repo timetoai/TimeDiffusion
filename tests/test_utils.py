@@ -14,15 +14,23 @@ from timediffusion import count_params, kl_div, DimUniversalStandardScaler
     [
         np.sin(np.arange(10)) * 10,
         torch.arange(10).float(),
+        np.array([np.nan, 1.0, 2.0]),
+        torch.Tensor([torch.nan, 1.0, 2.0])
     ]
 )
 def test_duscaler(arr):
+    if isinstance(arr, np.ndarray):
+        nan_mask = np.isnan(arr)
+    else:
+        nan_mask = torch.isnan(arr)
+    mask = ~ nan_mask
+
     scaler = DimUniversalStandardScaler()
     tarr = scaler.fit_transform(arr)
     tarr1 = scaler.transform(arr)
     rarr = scaler.inverse_transform(tarr)
-    assert abs((tarr - tarr1).mean()) < scaler.eps
-    assert abs((rarr - arr).mean()) < scaler.eps
+    assert abs((tarr[mask] - tarr1[mask]).mean()) < scaler.eps
+    assert abs((rarr[mask] - arr[mask]).mean()) < scaler.eps
 
 @pytest.mark.parametrize(
     "x,y",

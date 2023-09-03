@@ -67,11 +67,14 @@ class DimUniversalStandardScaler:
         self.eps = eps
 
     def fit(self, data):
-        self.mu = data.mean()
-        self.std = data.std()
         if isinstance(data, torch.Tensor):
-            self.mu = self.mu.item()
-            self.std = self.std.item()
+            mask = ~ torch.isnan(data)
+            self.mu = data[mask].mean().item()
+            self.std = data[mask].std().item()
+        else:
+            mask = ~ np.isnan(data)
+            self.mu = data[mask].mean()
+            self.std = data[mask].std()
 
     def transform(self, data):
         return (data - self.mu) / (self.std + self.eps)
