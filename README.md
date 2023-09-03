@@ -52,4 +52,16 @@ TimeDiffusion takes inspiration from these established methods and only trains o
 
 ## Model architecture
 
-TODO
+Presented below are diagrams depicting model components, each new scheme representing a higher level of abstraction.
+
+* Temporal Block
+
+![Temporal Block Architecture image](https://github.com/timetoai/TimeDiffusion/blob/55d47ec9f570e43d636cee0014b50e4e72892830/handout/imgs/TemporalBlock.png)
+
+* TimeDiffusionProjector
+
+![TimeDiffusionProjector Architecture image](https://github.com/timetoai/TimeDiffusion/blob/55d47ec9f570e43d636cee0014b50e4e72892830/handout/imgs/TDP_architecture.png)
+
+* TimeDiffusion
+
+![TimeDiffusion Architecture image](https://github.com/timetoai/TimeDiffusion/blob/55d47ec9f570e43d636cee0014b50e4e72892830/handout/imgs/TD_architecture.png)
