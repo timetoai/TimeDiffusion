@@ -50,6 +50,7 @@ class TD(nn.Module):
 
     def fit(self, example: Union[np.ndarray, torch.Tensor], mask: Union[None, np.ndarray, torch.Tensor] = None,
             epochs: int = 20, batch_size: int = 2, steps_per_epoch: int = 32,
+            early_stopping : bool = False,
             lr: float = 4e-4, distance_loss: Union[str, nn.Module] = "MAE",
             distribution_loss: Union[str, nn.Module] = "kl_div", distrib_loss_coef = 1e-2,
             verbose: bool = False, seed=42) -> list[float]:
@@ -70,6 +71,9 @@ class TD(nn.Module):
                 more batch_size usually gives better results, but increasing epochs gives more significant improvement
 
             `steps_per_epoch` - number of diffusion steps to train each epoch
+
+            `early_stopping_epochs` - whether to validate model after each epoch
+                and stop model after first restoring quality decrease
 
             `lr` - learning rate
 
@@ -125,6 +129,9 @@ class TD(nn.Module):
 
         optim = torch.optim.Adam(self.parameters(), lr=lr)
         losses = []
+        if early_stopping:
+            val_losses = []
+            val_noise = torch.rand(*X.shape, device=self.device(), dtype=self.dtype())
 
         torch.random.manual_seed(seed)
         for epoch in (tqdm(range(1, epochs + 1)) if verbose else range(1, epochs + 1)):
@@ -148,6 +155,20 @@ class TD(nn.Module):
                 with torch.no_grad():
                     noise -= y_hat
                 losses.append(loss.item())
+
+            # validation
+            if early_stopping:
+                with torch.no_grad():
+                    cur = val_noise.clone()
+                    for step in range(steps_per_epoch):
+                        cur -= self.model(cur)
+                    val_losses.append(distance_loss(cur, X).mean().item())
+                
+                if epoch > 1 and val_losses[- 2] <= val_losses[- 1]:
+                    if verbose:
+                        print(f"Due to `early_stopping` fitting stops after {epoch}")
+                        print(f"Val quality of last epoch {val_losses[- 2]: .1e}, of current {val_losses[- 1]: .1e}")
+                    break
 
         # saving some training parameters, could be useful in inference
         self.training_steps_per_epoch = steps_per_epoch

@@ -22,7 +22,7 @@ class TestTD:
             mask = np.random.uniform(low=0., high=1.0, size=data.shape) < mask_dropout
         
         try:
-            model.fit(data, mask=mask, epochs=1, batch_size=1, steps_per_epoch=2)
+            model.fit(data, mask=mask, early_stopping=True, epochs=1, batch_size=1, steps_per_epoch=2)
         except Exception as e:
             pytest.fail(f"TD.fit with {dims = } failed with exception: {e}")
 
