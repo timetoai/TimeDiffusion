@@ -65,9 +65,9 @@ class TimeDiffusionProjector(nn.Module):
         return x
 
 
-class TimeDiffusion(nn.Module):
+class TimeDiffusionAttention(nn.Module):
     """
-    main model, uses projectors to create (q, k, v) for vanilla attention layer
+    attention model, uses projectors to create (q, k, v) for vanilla attention layer
     """
     def __init__(self, *args, **params):
         """

@@ -51,7 +51,7 @@ restored_seq = model.restore(example=seq, mask=mask)
 
 Main synopsis behind TimeDiffusion model is that in reality, when working with time series we don’t have many samples, as it could be in other machine learning fields (e.g. cv, nlp). Thus, classical autoregressive approaches like ARIMA has the most suitable approach of fitting / training only on original sequence (maybe with some exogenous data).
 
-TimeDiffusion takes inspiration from these established methods and only trains on the input sample. Model incorporates most powerful modern deep learning techniques such as diffusion process, exponential dilated convolutions, residual connections and attention mechanism
+TimeDiffusion takes inspiration from these established methods and only trains on the input sample. Model incorporates most powerful modern deep learning techniques such as diffusion process, exponential dilated convolutions, residual connections and attention mechanism (in one of the versions)
 
 ## Model architecture
 
@@ -59,12 +59,12 @@ Presented below are diagrams depicting model components, each new scheme represe
 
 * Temporal Block
 
-![Temporal Block Architecture image](https://github.com/timetoai/TimeDiffusion/blob/55d47ec9f570e43d636cee0014b50e4e72892830/handout/imgs/TemporalBlock.png)
+![Temporal Block Architecture image](https://github.com/timetoai/TimeDiffusion/blob/main/handout/imgs/TemporalBlock.png)
 
-* TimeDiffusionProjector
+* TimeDiffusionProjector (currently main model in use)
 
-![TimeDiffusionProjector Architecture image](https://github.com/timetoai/TimeDiffusion/blob/55d47ec9f570e43d636cee0014b50e4e72892830/handout/imgs/TDP_architecture.png)
+![TimeDiffusionProjector Architecture image](https://github.com/timetoai/TimeDiffusion/blob/main/handout/imgs/TDP_architecture.png)
 
-* TimeDiffusion
+* TimeDiffusionAttention (currently not viable)
 
-![TimeDiffusion Architecture image](https://github.com/timetoai/TimeDiffusion/blob/55d47ec9f570e43d636cee0014b50e4e72892830/handout/imgs/TD_architecture.png)
+![TimeDiffusion Architecture image](https://github.com/timetoai/TimeDiffusion/blob/main/handout/imgs/TDA_architecture.png)

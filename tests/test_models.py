@@ -5,10 +5,10 @@ import numpy as np
 import torch
 from torch import nn
 
-from timediffusion import TimeDiffusionProjector, TimeDiffusion
+from timediffusion import TimeDiffusionProjector, TimeDiffusionAttention
 
 
-@pytest.mark.parametrize("model_init", [TimeDiffusionProjector, TimeDiffusion])
+@pytest.mark.parametrize("model_init", [TimeDiffusionProjector, TimeDiffusionAttention])
 @pytest.mark.parametrize("dims", [[1, 35], [1, 7, 7], [1, 5, 5, 5], [2, 35], [2, 7, 7], [2, 5, 5, 5]])
 class TestTimeDiffusion:
     def test_forward_pass(self, model_init, dims):

@@ -1,5 +1,5 @@
 from .utils import count_params, DimUniversalStandardScaler, kl_div
-from .models import TimeDiffusionProjector, TimeDiffusion
+from .models import TimeDiffusionProjector, TimeDiffusionAttention
 from .frameworks import TD
 
 __all__ = [
@@ -10,6 +10,6 @@ __all__ = [
     "DimUniversalStandardScaler",
     # models
     "TimeDiffusionProjector",
-    "TimeDiffusion",
+    "TimeDiffusionAttention",
     "TD"
 ]

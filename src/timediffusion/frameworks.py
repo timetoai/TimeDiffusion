@@ -8,16 +8,19 @@ import torch
 from torch import nn
 
 from .utils import count_params, DimUniversalStandardScaler, kl_div as _kl_div
-from .models import TimeDiffusion
+from .models import TimeDiffusionProjector, TimeDiffusionAttention
     
 
 class TD(nn.Module):
     """
-    Class provides a convenient framework for effectively working with TimeDiffusion, encompassing all essential functions.
+    Class provides a convenient framework for effectively working with TimeDiffusionProjector, encompassing all essential functions.
     """
-    def __init__(self, verbose: bool = False, seed=42, *args, **params):
+    def __init__(self, base_model_init: nn.Module = TimeDiffusionProjector,
+                     verbose: bool = False, seed=42, *args, **params):
         """
         args (mostly same as TimeDiffusionProjector):
+
+            `base_model_init` - base model init func, should be in (base_model_init)
 
             `verbose` - whether to report number of model parameters
 
@@ -36,7 +39,9 @@ class TD(nn.Module):
         """
         super().__init__()
         torch.random.manual_seed(seed)
-        self.model = TimeDiffusion(*args, **params)
+        if base_model_init not in (TimeDiffusionProjector, TimeDiffusionAttention):
+            raise ValueError(f"base_model_init should be in (TimeDiffusionProjector, TimeDiffusionAttention)")
+        self.model = base_model_init(*args, **params)
         self.input_dims = self.model.input_dims
         self.is_fitted = False
         if verbose:
