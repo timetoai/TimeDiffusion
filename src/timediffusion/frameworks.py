@@ -158,6 +158,7 @@ class TD(nn.Module):
 
             # validation
             if early_stopping_epochs is not None:
+                self.model.eval()
                 with torch.no_grad():
                     cur = val_noise.clone()
                     for step in range(steps_per_epoch):
@@ -249,6 +250,7 @@ class TD(nn.Module):
             X[nan_mask] = torch.randn(nan_mask.sum(), device=X.device, dtype=X.dtype)
 
         steps = self.training_steps_per_epoch if steps is None else steps
+        self.model.eval()
         for step in (tqdm(range(steps)) if verbose else range(steps)):
             preds = self.model(X)
             if mask is None:
@@ -346,6 +348,7 @@ class TD(nn.Module):
         if verbose:
             print("Estimating fitted proximity...")
 
+        self.model.eval()
         _range = range(self.training_steps_per_epoch * step_granulation)
         for _ in (tqdm(_range) if verbose else _range):
             preds = self.model(x) * gran_coef
