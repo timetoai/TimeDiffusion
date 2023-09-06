@@ -43,7 +43,9 @@ restored_seq = model.restore(example=seq, mask=mask)
 
 ## Examples
 
-[Time series tasks example](./examples/example_1d_data.ipynb)
+[Time series: multiple tasks example](./examples/example_1d_data.ipynb)
+
+[Forecasting bitcoin price example](./examples/bitcoin_forecast.ipynb)
 
 ## Philosophy
 
