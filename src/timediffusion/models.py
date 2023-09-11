@@ -28,7 +28,7 @@ class TimeDiffusionProjector(TimeDiffusionModel):
     convolutional network, used as projector in TD
     consists of temporal blocks with exponentially increasing padding/dilation parameters
     """
-    def __init__(self, input_dims: Union[list[int], tuple[int]], max_deg_constraint: int = 13,
+    def __init__(self, input_dims: Union[list[int], tuple[int]], max_deg_constraint: Union[int, None] = None,
                   conv_filters: int = 128, base_dropout: float = 0.05):
         """
         args:
@@ -39,6 +39,7 @@ class TimeDiffusionProjector(TimeDiffusionModel):
 
             `max_deg_constraint` - constraint to lessen network size, if not big enough will worsen model quality
                 number of temporal blocks in network will be (1 + max_deg_constraint) maximum
+                if None: ignores parameter
 
             `conv_filters` - number of convolutional filters for each layer
 
@@ -51,7 +52,7 @@ class TimeDiffusionProjector(TimeDiffusionModel):
         self.channels = input_dims[0]
         self.max_seq = max(input_dims[1:])
         self.max_deg = int(np.ceil(np.log2(self.max_seq)))
-        if max_deg_constraint < self.max_deg:
+        if max_deg_constraint is not None and max_deg_constraint < self.max_deg:
             print(f"For better TimeDiffusion performance it's recommended to use max_deg_constraint ", end="")
             print(f"with value{self.max_deg} for input with shape {input_dims}")
             self.max_deg = max_deg_constraint
@@ -124,3 +125,59 @@ class TimeDiffusionAttention(TimeDiffusionModel):
             attention = attention.view(orig_shape)
 
         return attention
+
+
+class TimeDiffusionLiquid(TimeDiffusionModel):
+    def __init__(self, input_dims: Union[list[int], tuple[int]], max_deg_constraint: Union[int, None] = None,
+                  conv_filters: int = 128, base_dropout: float = 0.05):
+        """
+        args:
+
+            `input_dims` - [channels, *dims]
+                needed for dynamical network building
+                best way to pass it as `x.shape` (without batches)
+
+            `max_deg_constraint` - constraint to lessen network size, if not big enough will worsen model quality
+                number of temporal blocks in network will be (1 + max_deg_constraint) maximum
+                if None: ignores parameter
+
+            `conv_filters` - number of convolutional filters for each layer
+
+            `base_dropout` - dropout for first temporal block
+        """
+        super().__init__()
+        
+        self.in_channels = input_dims[0]
+        self.max_seq = max(input_dims[1:])
+        self.max_deg = int(np.ceil(np.log2(self.max_seq)))
+        if max_deg_constraint is not None and max_deg_constraint < self.max_deg:
+            print(f"For better TimeDiffusion performance it's recommended to use max_deg_constraint ", end="")
+            print(f"with value{self.max_deg} for input with shape {input_dims}")
+            self.max_deg = max_deg_constraint
+            print(f"Setting current {self.max_deg = }")
+
+        self.projector = nn.Conv1d(self.in_channels, conv_filters, kernel_size=1)
+        self.base_dropout = nn.Dropout(base_dropout)
+        self.conv = nn.Conv1d(conv_filters, conv_filters, 2)
+        self.out_projector = nn.Conv1d(conv_filters, self.in_channels, kernel_size=1)
+
+        self.__init_weights()
+
+    def __init_weights(self):
+        nn.init.kaiming_uniform_(self.projector.weight, a=0.01)
+        nn.init.kaiming_uniform_(self.conv.weight, a=0.01)
+        nn.init.kaiming_uniform_(self.out_projector.weight, a=0.01)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.projector(x)
+        x = self.base_dropout(x)
+
+        # as network is much smaller, it's implemented in more functional way
+        for i in range(self.max_deg + 1):
+            x = nn.functional.conv1d(x, self.conv.weight, self.conv.bias,
+                                     padding=2 ** i, dilation=2 ** i)
+            x = nn.functional.relu(x)
+            x = x[..., : - 2 ** i]
+
+        x = self.out_projector(x)
+        return x
