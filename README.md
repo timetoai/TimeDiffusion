@@ -2,12 +2,19 @@
 
 Supports 2D (image) and 3D (video) data as input for research purposes.
 
+## Contents
+* [Install](#install)
+* [Quick Start](#quick-start)
+* [Examples](#examples)
+* [Philosophy](#philosophy)
+* [Base Models](#base-models)
+* [Model architecture](#model-architecture)
+
 ## Install
 
 ```bash
 pip install timediffusion
 ```
-
 
 ## Quick Start
 
@@ -53,6 +60,20 @@ Main synopsis behind TimeDiffusion model is that in reality, when working with t
 
 TimeDiffusion takes inspiration from these established methods and only trains on the input sample. Model incorporates most powerful modern deep learning techniques such as diffusion process, exponential dilated convolutions, residual connections and attention mechanism (in one of the versions)
 
+## Base Models
+
+* `TimeDiffusionProjector` - exponential dilated convolutions + residual connections.
+
+Currently main model in use
+
+* `TimeDiffusionAttention` - attention mechanism on top of `TimeDiffusionProjector` (q, k, v) projectors.
+
+Currently not viable
+
+* `TimeDiffusionLiquid` - exponential dilated convolutions with shared middle convolutional layer weight. 
+
+Lightweight, fast, but less accurate than the main model.
+
 ## Model architecture
 
 Presented below are diagrams depicting model components, each new scheme representing a higher level of abstraction.
@@ -61,10 +82,10 @@ Presented below are diagrams depicting model components, each new scheme represe
 
 ![Temporal Block Architecture image](https://github.com/timetoai/TimeDiffusion/blob/main/handout/imgs/TemporalBlock.png)
 
-* TimeDiffusionProjector (currently main model in use)
+* TimeDiffusionProjector
 
 ![TimeDiffusionProjector Architecture image](https://github.com/timetoai/TimeDiffusion/blob/main/handout/imgs/TDP_architecture.png)
 
-* TimeDiffusionAttention (currently not viable)
+* TimeDiffusionAttention
 
 ![TimeDiffusion Architecture image](https://github.com/timetoai/TimeDiffusion/blob/main/handout/imgs/TDA_architecture.png)
