@@ -5,9 +5,10 @@ import numpy as np
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from .utils import get_appropriate_conv_layer
-from .layers import TemporalBlock
+from .layers import TemporalBlock, Chomp
 
 
 class TimeDiffusionModel(nn.Module, ABC):
@@ -147,6 +148,7 @@ class TimeDiffusionLiquid(TimeDiffusionModel):
         """
         super().__init__()
         
+        self.dims = len(input_dims) - 1
         self.in_channels = input_dims[0]
         self.max_seq = max(input_dims[1:])
         self.max_deg = int(np.ceil(np.log2(self.max_seq)))
@@ -156,10 +158,15 @@ class TimeDiffusionLiquid(TimeDiffusionModel):
             self.max_deg = max_deg_constraint
             print(f"Setting current {self.max_deg = }")
 
-        self.projector = nn.Conv1d(self.in_channels, conv_filters, kernel_size=1)
+        conv_init = get_appropriate_conv_layer(self.dims)
+        self.projector = conv_init(self.in_channels, conv_filters, kernel_size=1)
         self.base_dropout = nn.Dropout(base_dropout)
-        self.conv = nn.Conv1d(conv_filters, conv_filters, 2)
-        self.out_projector = nn.Conv1d(conv_filters, self.in_channels, kernel_size=1)
+
+        self.conv = conv_init(conv_filters, conv_filters, 2)
+        self.conv_func = [F.conv1d, F.conv2d, F.conv3d][self.dims - 1]
+        self.chomps = [Chomp(2 ** i, self.dims) for i in range(self.max_deg + 1)]
+
+        self.out_projector = conv_init(conv_filters, self.in_channels, kernel_size=1)
 
         self.__init_weights()
 
@@ -172,12 +179,18 @@ class TimeDiffusionLiquid(TimeDiffusionModel):
         x = self.projector(x)
         x = self.base_dropout(x)
 
+        # as network uses weights of only one convolutional layer
+        # we can reuse it for more dilation/padding combination on the fly
+        cur_deg = int(np.ceil(np.log2(max(x.shape[- self.dims:]))))
+        for i in range(len(self.chomps), cur_deg + 1):
+            self.chomps.append(Chomp(2 ** i, self.dims))
+
         # as network is much smaller, it's implemented in more functional way
-        for i in range(self.max_deg + 1):
-            x = nn.functional.conv1d(x, self.conv.weight, self.conv.bias,
+        for i in range(cur_deg + 1):
+            x = self.conv_func(x, self.conv.weight, self.conv.bias,
                                      padding=2 ** i, dilation=2 ** i)
-            x = nn.functional.relu(x)
-            x = x[..., : - 2 ** i]
+            x = F.relu(x)
+            x = self.chomps[i](x)
 
         x = self.out_projector(x)
         return x
