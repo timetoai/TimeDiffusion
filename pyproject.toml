@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "timediffusion"
-version = "0.3"
+version = "0.4"
 authors = [
   { name="Shishkov Vladislav", email="shishkovve@mail.com" },
 ]
