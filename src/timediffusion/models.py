@@ -148,6 +148,7 @@ class TimeDiffusionLiquid(TimeDiffusionModel):
         """
         super().__init__()
         
+        self.input_dims = input_dims
         self.dims = len(input_dims) - 1
         self.in_channels = input_dims[0]
         self.max_seq = max(input_dims[1:])
