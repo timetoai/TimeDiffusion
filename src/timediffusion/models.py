@@ -1,4 +1,5 @@
 from typing import Union
+from abc import ABC, abstractmethod
 
 import numpy as np
 
@@ -9,7 +10,20 @@ from .utils import get_appropriate_conv_layer
 from .layers import TemporalBlock
 
 
-class TimeDiffusionProjector(nn.Module):
+class TimeDiffusionModel(nn.Module, ABC):
+    """
+    Abstract class for all base models
+    """
+    @abstractmethod
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+    @abstractmethod
+    def forward(self, *args, **kwards):
+        pass
+
+
+class TimeDiffusionProjector(TimeDiffusionModel):
     """
     convolutional network, used as projector in TD
     consists of temporal blocks with exponentially increasing padding/dilation parameters
@@ -65,7 +79,7 @@ class TimeDiffusionProjector(nn.Module):
         return x
 
 
-class TimeDiffusionAttention(nn.Module):
+class TimeDiffusionAttention(TimeDiffusionModel):
     """
     attention model, uses projectors to create (q, k, v) for vanilla attention layer
     """
