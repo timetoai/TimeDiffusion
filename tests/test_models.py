@@ -5,14 +5,16 @@ import numpy as np
 import torch
 from torch import nn
 
-from timediffusion import TimeDiffusionProjector, TimeDiffusionAttention
+from timediffusion import TimeDiffusionModel, TimeDiffusionProjector,\
+                         TimeDiffusionAttention, TimeDiffusionLiquid
 
 
-@pytest.mark.parametrize("model_init", [TimeDiffusionProjector, TimeDiffusionAttention])
+@pytest.mark.parametrize("model_init", [TimeDiffusionProjector, TimeDiffusionAttention, TimeDiffusionLiquid])
 @pytest.mark.parametrize("dims", [[1, 35], [1, 7, 7], [1, 5, 5, 5], [2, 35], [2, 7, 7], [2, 5, 5, 5]])
-class TestTimeDiffusion:
+class TestTimeDiffusionModel:
     def test_forward_pass(self, model_init, dims):
         model = model_init(input_dims=dims)
+        assert isinstance(model, TimeDiffusionModel)
 
         # unbatched forward pass
         data = torch.ones(*dims)
@@ -36,6 +38,7 @@ class TestTimeDiffusion:
 
     def test_backward_pass(self, model_init, dims):
         model = model_init(input_dims=dims)
+        assert isinstance(model, TimeDiffusionModel)
 
         # unbatched backward pass
         data = torch.ones(*dims)
