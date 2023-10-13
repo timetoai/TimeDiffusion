@@ -11,9 +11,10 @@ from timediffusion import TimeDiffusionModel, TimeDiffusionProjector,\
 
 @pytest.mark.parametrize("model_init", [TimeDiffusionProjector, TimeDiffusionAttention, TimeDiffusionLiquid])
 @pytest.mark.parametrize("dims", [[1, 35], [1, 7, 7], [1, 5, 5, 5], [2, 35], [2, 7, 7], [2, 5, 5, 5]])
+@pytest.mark.parametrize("kernel_size", [2, 3])
 class TestTimeDiffusionModel:
-    def test_forward_pass(self, model_init, dims):
-        model = model_init(input_dims=dims)
+    def test_forward_pass(self, model_init, dims, kernel_size):
+        model = model_init(input_dims=dims, kernel_size=kernel_size)
         assert isinstance(model, TimeDiffusionModel)
 
         # unbatched forward pass
@@ -36,8 +37,8 @@ class TestTimeDiffusionModel:
         assert data.shape == res.shape
         assert (~ torch.isnan(res)).all()
 
-    def test_backward_pass(self, model_init, dims):
-        model = model_init(input_dims=dims)
+    def test_backward_pass(self, model_init, dims, kernel_size):
+        model = model_init(input_dims=dims, kernel_size=kernel_size)
         assert isinstance(model, TimeDiffusionModel)
 
         # unbatched backward pass

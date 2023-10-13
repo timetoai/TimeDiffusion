@@ -30,7 +30,7 @@ class TimeDiffusionProjector(TimeDiffusionModel):
     consists of temporal blocks with exponentially increasing padding/dilation parameters
     """
     def __init__(self, input_dims: Union[list[int], tuple[int]], max_deg_constraint: Union[int, None] = None,
-                  conv_filters: int = 128, base_dropout: float = 0.05):
+                  kernel_size: int = 2, conv_filters: int = 128, base_dropout: float = 0.05):
         """
         args:
 
@@ -42,12 +42,15 @@ class TimeDiffusionProjector(TimeDiffusionModel):
                 number of temporal blocks in network will be (1 + max_deg_constraint) maximum
                 if None: ignores parameter
 
+            `kernel_size` - base kernel size for dilated convolutions
+
             `conv_filters` - number of convolutional filters for each layer
 
             `base_dropout` - dropout for first temporal block
         """
         super().__init__()
 
+        self.kernel_size = kernel_size
         self.input_dims = input_dims
         self.dims = len(input_dims) - 1
         self.channels = input_dims[0]
@@ -63,8 +66,9 @@ class TimeDiffusionProjector(TimeDiffusionModel):
             [TemporalBlock(self.channels, conv_filters, 
                            kernel_size=1, stride=1, dilation=1, padding=0, dropout=base_dropout, dims=self.dims),
              *[TemporalBlock(conv_filters, conv_filters, 
-                             kernel_size=2, stride=1, dilation=i, padding=i, dropout=0.0, dims=self.dims)
-                                        for i in [2 ** i for i in range(self.max_deg + 1)]]
+                             kernel_size=kernel_size, stride=1, dilation=i, padding=i * (kernel_size - 1),
+                               dropout=0.0, dims=self.dims)
+                                        for i in [kernel_size ** i for i in range(self.max_deg + 1)]]
                                     ])
         
         self.last = get_appropriate_conv_layer(self.dims)(conv_filters, self.channels, kernel_size=1, stride=1, dilation=1)
@@ -130,7 +134,7 @@ class TimeDiffusionAttention(TimeDiffusionModel):
 
 class TimeDiffusionLiquid(TimeDiffusionModel):
     def __init__(self, input_dims: Union[list[int], tuple[int]], max_deg_constraint: Union[int, None] = None,
-                  conv_filters: int = 128, base_dropout: float = 0.05):
+                  kernel_size: int = 2, conv_filters: int = 128, base_dropout: float = 0.05):
         """
         args:
 
@@ -142,12 +146,15 @@ class TimeDiffusionLiquid(TimeDiffusionModel):
                 number of temporal blocks in network will be (1 + max_deg_constraint) maximum
                 if None: ignores parameter
 
+            `kernel_size` - base kernel size for dilated convolutions
+
             `conv_filters` - number of convolutional filters for each layer
 
             `base_dropout` - dropout for first temporal block
         """
         super().__init__()
         
+        self.kernel_size = kernel_size
         self.input_dims = input_dims
         self.dims = len(input_dims) - 1
         self.in_channels = input_dims[0]
@@ -163,9 +170,9 @@ class TimeDiffusionLiquid(TimeDiffusionModel):
         self.projector = conv_init(self.in_channels, conv_filters, kernel_size=1)
         self.base_dropout = nn.Dropout(base_dropout)
 
-        self.conv = conv_init(conv_filters, conv_filters, 2)
+        self.conv = conv_init(conv_filters, conv_filters, kernel_size)
         self.conv_func = [F.conv1d, F.conv2d, F.conv3d][self.dims - 1]
-        self.chomps = [Chomp(2 ** i, self.dims) for i in range(self.max_deg + 1)]
+        self.chomps = [Chomp(self.kernel_size ** i * (self.kernel_size - 1), self.dims) for i in range(self.max_deg + 1)]
 
         self.out_projector = conv_init(conv_filters, self.in_channels, kernel_size=1)
 
@@ -184,12 +191,13 @@ class TimeDiffusionLiquid(TimeDiffusionModel):
         # we can reuse it for more dilation/padding combination on the fly
         cur_deg = int(np.ceil(np.log2(max(x.shape[- self.dims:]))))
         for i in range(len(self.chomps), cur_deg + 1):
-            self.chomps.append(Chomp(2 ** i, self.dims))
+            self.chomps.append(Chomp(self.kernel_size ** i * (self.kernel_size - 1), self.dims))
 
         # as network is much smaller, it's implemented in more functional way
         for i in range(cur_deg + 1):
+            dilation = self.kernel_size ** i
             x = self.conv_func(x, self.conv.weight, self.conv.bias,
-                                     padding=2 ** i, dilation=2 ** i)
+                                     padding=dilation * (self.kernel_size - 1), dilation=dilation)
             x = F.relu(x)
             x = self.chomps[i](x)
 
